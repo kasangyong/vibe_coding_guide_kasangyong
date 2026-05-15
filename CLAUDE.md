@@ -110,3 +110,25 @@ For multi-step tasks, state a brief plan:
 ```
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+---
+
+## Skills (local-harness v0.1)
+
+이 프로젝트에서 활성화된 슬래시 커맨드:
+
+| Command | Role | When to call |
+|---|---|---|
+| /plan-eng | Engineering Manager | 어떻게 만들지 결정 (설계 문서 → `docs/design/`) |
+| /build | Staff Engineer | 실제 코드 작성 |
+| /review | Code Reviewer | 변경사항 리뷰 (글로벌 code-reviewer 위임) |
+| /careful | Safety Guardrail | 삭제·마이그레이션·배포 등 위험 작업 직전 |
+
+## Skill routing
+
+- "기능 추가" → `/plan-eng` → `/build` → `/review`
+- "버그 수정" → `/build` → `/review`
+- "리뷰해줘" → `/review`
+- 삭제/마이그레이션/배포 → 반드시 `/careful` 먼저
+
+기본 원칙: **한 번에 하나의 역할.** 역할 전환은 명시적으로 표시한다.
