@@ -64,8 +64,10 @@ bash scripts/doctor.sh                             # 빠진 것과 설치 방법
 Codex의 기본 샌드박스(`workspace-write`)는 Windows에서 Git Bash 실행 자체를 막는다(`CreateFileMapping ... Win32 error 5`). 네트워크만 여는 설정으로는 풀리지 않는다. 영상 작업에서만 샌드박스를 끄는 프로필 파일 `~/.codex/video.config.toml`을 만든다. `-p video`를 주면 기본 설정 위에 이 파일을 덮어쓴다(codex-cli 0.164 기준).
 
 ```bash
-printf 'sandbox_mode = "danger-full-access"\n' > ~/.codex/video.config.toml
+printf 'sandbox_mode = "danger-full-access"\nmodel_reasoning_effort = "medium"\n' > ~/.codex/video.config.toml
 ```
+
+추론 강도를 낮게(`none`) 두면 단계와 검사는 지켜도 연출이 단순해진다. 영상 작업에는 `medium` 이상을 권한다.
 
 ```bash
 codex -p video                       # 영상 작업 세션
