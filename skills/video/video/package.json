@@ -1,0 +1,16 @@
+{
+  "name": "video-skill",
+  "private": true,
+  "type": "module",
+  "description": "seek(t) HTML page -> Playwright frames -> ffmpeg. Scripts for the video skill.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "setup": "playwright install chromium",
+    "doctor": "bash scripts/doctor.sh"
+  },
+  "dependencies": {
+    "playwright": "1.64.1"
+  }
+}

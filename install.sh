@@ -20,6 +20,14 @@ if [ -z "$py" ]; then
   exit 1
 fi
 
+# 두 팩에 같은 이름의 스킬이 있으면 하나가 다른 하나를 덮으므로, 아무것도 바꾸기 전에 멈춘다.
+dup="$(for s in "$repo"/skills/*/*/; do basename "$s"; done | sort | uniq -d)"
+if [ -n "$dup" ]; then
+  echo "스킬 이름이 여러 팩에 겹친다: $(echo $dup). 한쪽 이름을 바꾼 뒤 다시 실행할 것. 아무것도 바꾸지 않았다." >&2
+  for d in $dup; do ls -d "$repo"/skills/*/"$d" >&2; done
+  exit 1
+fi
+
 backup() {
   if [ -e "$1" ]; then
     mv "$1" "$1.bak-$stamp"
@@ -85,14 +93,22 @@ install_skills() {  # $1 스킬 설치 폴더
   mkdir -p "$1"
   # 스킬 폴더 안에 백업을 두면 같은 이름의 스킬이 중복 로드되므로 바깥에 둔다.
   backup_dir="$1/../skills-backup-$stamp"
-  for skill in "$repo"/skills/core/*/; do
+  # skills/<팩>/<스킬>/ 을 모두 평평하게 깐다 (core, video 등). 이름 충돌은 맨 위에서 이미 걸렀다.
+  for skill in "$repo"/skills/*/*/; do
     name="$(basename "$skill")"
+    pack="$(basename "$(dirname "$skill")")"
     if [ -e "$1/$name" ]; then
       mkdir -p "$backup_dir"
-      mv "$1/$name" "$backup_dir/$name"
-      echo "  backup: $backup_dir/$name"
+      # 백업 자리에 이미 같은 이름이 있으면 mv 가 그 안으로 넣어 중첩되므로 이름을 바꾼다.
+      dest="$backup_dir/$name"
+      [ -e "$dest" ] && dest="$backup_dir/$pack-$name"
+      [ -e "$dest" ] && dest="$backup_dir/$pack-$name-$$"
+      mv "$1/$name" "$dest"
+      echo "  backup: $dest"
     fi
-    cp -r "$skill" "$1/$name"
+    # node_modules 는 설치한 곳에서 npm ci 로 다시 만든다. 복사하지 않는다.
+    mkdir -p "$1/$name"
+    (cd "$skill" && tar cf - --exclude=node_modules .) | (cd "$1/$name" && tar xf -)
     echo "  $1/$name"
   done
 }

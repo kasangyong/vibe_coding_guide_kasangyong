@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>intro</title>
+<!--
+  기준 예제. 개인 내용 없는 가상의 "조각을 모아 정리하는 도구" 소개 영상(약 24초)이다.
+  장면 내용은 기획서대로 갈아 끼우고, 아래 규약과 원칙을 지키는 방식은 그대로 따른다.
+
+  규약
+  - 모든 프레임은 seek(v)의 순수 함수다. CSS transition/animation, setTimeout, Date.now, Math.random 금지(rnd(i) 사용).
+  - window.VIDEO = { w, h, duration }. duration은 영상 시간(초)이고 프레임 경계로 반올림한다.
+  - window.buildAudio(ctx): 받은 OfflineAudioContext에 소리를 예약한다. 시각은 영상 시간.
+  - window.blurAt(v): 그 순간 화면이 프레임당 8px(1080 기준) 넘게 움직이면 true(P46).
+  - window.THUMB = [시작, 끝], window.POSTER = 시각: 기획서 spec 블록에 옮겨 적을 값(영상 초).
+  - ?render 렌더러가 붙인다. ?t=6.2 그 시각에 멈춰 보기. 아무것도 없으면 브라우저에서 실시간 재생.
+  - 글꼴 자리 /*FONT:이름*/ 는 scripts/fonts.py embed 가 채운다. 글자를 바꾸면 다시 embed.
+
+  시간: 이야기 시간 t(장면표 기준) -> 속도 곡선 KN -> 영상 시간 v. 설명이 떠 있는 구간만 0.85배로 늦추고 장면은 계속 움직인다.
+  장면표(이야기 시간)
+  1  0~4.6    모으기. 왼쪽 출처들에서 조각이 가운데 상자로 흘러든다. 카메라는 오른쪽으로 천천히 팬. 헤드라인 1.
+  2  4.6~10   정리. 카메라가 선반으로 빠르게 넘어가(블러) 천천히 밀린다. 조각이 색깔별 선반 칸을 채운다. 설명 1개.
+  3  10~12    잇기. 넓은 샷으로 빠지며 선반에서 결과물로 선이 그어지고 결과물 원이 튀어나온다. 카메라는 루프의 속도로 이어진다.
+  4  12~20    루프. 같은 넓은 샷이 8초 주기로 천천히 돈다. 조각(4초 주기), 선 위 빛(2초 주기), 숨쉬기 줌(8초)이 모두
+              8초로 나누어떨어져 12초와 20초의 그림이 같다. 헤드라인 2는 가운데에만 걸린다. 썸네일 구간.
+  5  20~24    엔딩. 나머지가 물러나고 결과물 원으로 밀려 들어가 이름과 마지막 헤드라인.
+  원칙 대응: 같은 구도 6초 이내(P28), 불투명 설명 상자와 글자만 페이드(P49), 설명은 그림이 나온 0.5초 뒤(copy.md),
+  썸네일 구간에 설명 없음(P56), 이음새에 글자 없음(P53), 헤드라인은 위 층(P41).
+-->
+<style>
+@font-face{font-family:'H';src:url(data:font/woff2;base64,/*FONT:Pretendard-900*/) format('woff2');font-weight:900}
+@font-face{font-family:'B';src:url(data:font/woff2;base64,/*FONT:Pretendard-600*/) format('woff2');font-weight:600}
+:root{--paper:#f3eee4;--ink:#1f1c19;--accent:#e0533a}
+html,body{margin:0;background:var(--paper);overflow:hidden}
+#stage{position:absolute;left:0;top:0;width:1920px;height:1080px;overflow:hidden;background:var(--paper)}
+#cv{position:absolute;inset:0}
+.hl{position:absolute;left:0;right:0;top:118px;text-align:center;font:900 116px/1 'H';letter-spacing:-.035em;color:var(--ink);z-index:5;visibility:hidden}
+.hl .w{display:inline-block;margin:0 .13em}
+.hl .e{color:var(--accent)}
+#wm{position:absolute;left:0;right:0;top:812px;text-align:center;font:900 64px/1 'H';letter-spacing:.02em;color:var(--ink);z-index:5;visibility:hidden}
+/* 설명: 상자는 불투명하고 열고 닫기(clip)로만 움직인다. 글자만 페이드 */
+#ex{position:absolute;right:110px;bottom:118px;padding:30px 44px 34px;border-radius:26px;background:var(--ink);color:var(--paper);z-index:4;visibility:hidden}
+#ex .nm{font:900 40px/1.1 'H';color:var(--accent);letter-spacing:-.01em;margin-bottom:14px}
+#ex .ln{font:600 36px/1.42 'B';letter-spacing:-.01em;white-space:nowrap}
+</style></head>
+<body>
+<div id="stage">
+ <canvas id="cv" width="1920" height="1080"></canvas>
+ <div class="hl" id="h1"><span class="w">흩어진</span><span class="w">조각,</span><span class="w">한</span><span class="w e">곳으로</span></div>
+ <div class="hl" id="h2"><span class="w">모으면</span><span class="w">보이는</span><span class="w e">길</span></div>
+ <div class="hl" id="h3"><span class="w">조각에서</span><span class="w e">흐름으로</span></div>
+ <div id="wm">기준 예제</div>
+ <div id="ex"><div class="nm" id="exn">정리 선반</div><div class="ln" id="ex1">색깔별로 쌓이는 조각</div><div class="ln" id="ex2">찾을 때 바로 손이 가는 자리</div></div>
+</div>
+<script>
+const VW = 1920, VH = 1080, FPS = 30, DUR = 24;    // DUR = 이야기 길이
+const LS = 12, LE = 20, LP = 8;                     // 루프 구간(이야기 시간)과 주기
+const q = new URLSearchParams(location.search);
+const $ = id => document.getElementById(id);
+
+// ---- 수학
+const cl = x => Math.max(0, Math.min(1, x));
+const p = (t, a, b) => cl((t - a) / (b - a));
+const mix = (a, b, k) => a + (b - a) * k;
+const eo = x => 1 - Math.pow(1 - x, 3);
+const sine = x => 0.5 - 0.5 * Math.cos(Math.PI * x);
+const cubic = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const SPN = 1 - Math.exp(-6) * Math.cos(10);
+const spring = x => x <= 0 ? 0 : x >= 1 ? 1 : (1 - Math.exp(-6 * x) * Math.cos(10 * x)) / SPN;
+const rnd = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const frac = x => x - Math.floor(x);
+const TAU = Math.PI * 2;
+const bez = (u, a, c, b) => [(1 - u) ** 2 * a[0] + 2 * (1 - u) * u * c[0] + u * u * b[0], (1 - u) ** 2 * a[1] + 2 * (1 - u) * u * c[1] + u * u * b[1]];
+
+// ---- 속도 곡선: [이야기 시각, 배속]. 마디 사이는 코사인. 설명 구간(6.1~9.6)만 0.85배.
+const KN = [[0, 1], [5.8, 1], [6.2, 0.85], [9.4, 0.85], [9.8, 1], [DUR, 1]];
+function spd(t) {
+  for (let i = 0; i < KN.length - 1; i++) if (t <= KN[i + 1][0]) {
+    const [a, sa] = KN[i], [b, sb] = KN[i + 1];
+    return sa + (sb - sa) * sine(p(t, a, b));
+  }
+  return KN[KN.length - 1][1];
+}
+const WD = 0.001, VT = new Float64Array(Math.round(DUR / WD) + 1);
+for (let i = 1; i < VT.length; i++) VT[i] = VT[i - 1] + WD / spd((i - 0.5) * WD);
+const Vt = t => { const x = cl(t / DUR) * (VT.length - 1), i = Math.min(VT.length - 2, Math.floor(x)); return VT[i] + (VT[i + 1] - VT[i]) * (x - i); };
+const Wv = v => {
+  let lo = 0, hi = VT.length - 1;
+  if (v <= 0) return 0; if (v >= VT[hi]) return DUR;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (VT[m] <= v) lo = m; else hi = m; }
+  return (lo + (v - VT[lo]) / (VT[hi] - VT[lo])) * WD;
+};
+const DV = Math.round(VT[VT.length - 1] * FPS) / FPS;
+window.VIDEO = { w: VW, h: VH, duration: DV };
+window.Vt = Vt; window.Wv = Wv;
+// 썸네일: 루프 시작을 다음 프레임 경계로 올리고 정확히 한 주기(LP초 = LP*FPS 프레임)
+const TS = Math.ceil(Vt(LS) * FPS - 1e-6) / FPS;
+window.THUMB = [+TS.toFixed(4), +(TS + LP).toFixed(4)];
+window.POSTER = +Vt(15.6).toFixed(3);
+
+// ---- 무대 요소(월드 좌표, 가운데가 0,0)
+// 루프 넓은 샷(줌 0.62)에서 출처부터 결과물 글로까지가 썸네일 가운데 880px 안에 들어오게 안쪽으로 모은다(P4)
+const SRC = [-300, -150, 0, 150, 300].map(y => [-760, y]);
+const HUB = [-250, 0];
+const COL = ['#e0533a', '#2f7d6d', '#e3a72f'];
+const SHELF = [-230, 0, 230].map(y => [350, y]);
+const OUT = [820, 0];
+
+// ---- 설명: 영상 시간으로 잡는다. 머무는 시간 = 글자 수 / 11초(최소 2초). 등장 0.35초, 퇴장 0.25초.
+const EX = (() => {
+  const chars = ($('exn').textContent + $('ex1').textContent + $('ex2').textContent).length;
+  const a = Vt(6.1);                         // 선반이 화면에 자리 잡고(5.6) 0.5초 뒤
+  return { a, b: a + 0.35 + Math.max(2, chars / 11), out: 0.25 };
+})();
+
+// ---- 카메라 [x, y, 줌]. 줌은 로그 공간에서 잇는다.
+const CK = [  // [시작, 끝, 출발, 도착, 이징]
+  [0, 4.6, [-480, -90, 1.15], [-300, -100, 1.2], sine],      // 출처 맨 위가 헤드라인 띠(위 240px) 아래에 오게 내려 잡는다
+  [4.6, 5.6, [-300, -100, 1.2], [430, 0, 1.55], cubic],
+  [5.6, 10.0, [430, 0, 1.55], [470, -12, 1.63], sine],
+];
+// 루프: 8초에 한 바퀴 도는 궤도와 숨쉬기 줌. 12초와 20초가 같다. 6초 넘게 서 있지 않게(P28) 눈에 보일 만큼 움직인다.
+// 루프 경계에서 x와 줌의 속도는 0이고 y만 아래로 천천히 움직인다. 들어오는 카메라(위에서)와 나가는 카메라(아래로)가
+// 같은 방향이라 경계에서 되돌아가는 움직임(P29)이 생기지 않는다.
+const LX = 50, LZ = 0.62, AX = 40, AY = 10, AZ = 0.04;
+const loopCam = t => { const a = TAU * (t - LS) / LP; return [LX + AX * (1 - Math.cos(a)), AY * Math.sin(a), Math.log(LZ * (1 + AZ * (1 - Math.cos(a))))]; };
+const LOOP_V = [0, AY * TAU / LP, 0];                        // 루프 시작(=끝) 순간의 속도 [x/s, y/s, log z/s]
+// 3차 에르미트: 양 끝의 위치와 속도를 맞춘다. 루프에 들어가고 나올 때 속도가 꺾이지 않는다.
+const herm = (s, p0, m0, p1, m1, D) => { const s2 = s * s, s3 = s2 * s; return (2 * s3 - 3 * s2 + 1) * p0 + (s3 - 2 * s2 + s) * D * m0 + (-2 * s3 + 3 * s2) * p1 + (s3 - s2) * D * m1; };
+const hermV = (s, A, MA, B, MB, D) => A.map((a, i) => herm(s, a, MA[i], B[i], MB[i], D));
+const S2END = [470, -12, Math.log(1.63)], ENDC = [820, 40, Math.log(1.15)], ENDV = [0, 0, 0.025 / 1.15];
+function cam(t) {
+  let c;
+  if (t >= LS && t < LE) c = loopCam(t);
+  else if (t >= 10.0 && t < LS) c = hermV(p(t, 10.0, LS), S2END, [0, 0, 0], loopCam(LS), LOOP_V, LS - 10.0);    // 넓은 샷으로 빠지며 루프 속도로 들어간다
+  else if (t >= LE && t < LE + 1.4) c = hermV(p(t, LE, LE + 1.4), loopCam(LS), LOOP_V, ENDC, ENDV, 1.4);       // 루프 속도에서 엔딩으로
+  else if (t >= LE + 1.4) { const d = t - LE - 1.4; return [ENDC[0], ENDC[1], 1.15 + d * 0.025]; }               // 엔딩: 아주 천천히 계속 밀린다
+  else {
+    const g = CK.find(k => t >= k[0] && t < k[1]) || CK[CK.length - 1], e = g[4](p(t, g[0], g[1])), A = g[2], B = g[3];
+    c = [mix(A[0], B[0], e), mix(A[1], B[1], e), mix(Math.log(A[2]), Math.log(B[2]), e)];
+  }
+  return [c[0], c[1], Math.exp(c[2])];
+}
+const toScreen = (c, x, y) => [VW / 2 + (x - c[0]) * c[2], VH / 2 + (y - c[1]) * c[2]];
+const toWorld = (c, sx, sy) => [c[0] + (sx - VW / 2) / c[2], c[1] + (sy - VH / 2) / c[2]];
+window.blurAt = v => {
+  const a = cam(Wv(v)), b = cam(Wv(Math.min(DV, v + 1 / FPS)));
+  let m = 0;
+  for (const [sx, sy] of [[VW / 2, VH / 2], [0, 0], [VW, VH]]) {
+    const w = toWorld(a, sx, sy), s2 = toScreen(b, w[0], w[1]);
+    m = Math.max(m, Math.hypot(s2[0] - sx, s2[1] - sy));
+  }
+  return m > 8;
+};
+
+// ---- 헤드라인 낱말. tin 들어오기 시작, tout 나가기 시작(null이면 안 나감)
+function words(el, t, tin, tout, st = 0.08, ost = 0.05) {
+  let any = 0;
+  el.querySelectorAll('.w').forEach((w, i) => {
+    const a = p(t, tin + i * st, tin + i * st + 0.45), o = tout == null ? 0 : p(t, tout + i * ost, tout + i * ost + 0.28);
+    const s = spring(a), op = Math.min(cl(a * 3), 1 - eo(o));
+    w.style.opacity = op; any = Math.max(any, op);
+    w.style.transform = `translateY(${(1 - s) * 50 - 40 * eo(o)}px) scale(${mix(w.classList.contains('e') ? 1.5 : 0.6, 1, s)})`;
+  });
+  el.style.visibility = any > 0.001 ? 'visible' : 'hidden';
+}
+
+// ---- 그리기
+const X = $('cv').getContext('2d');
+const DOTS = Array.from({ length: 160 }, (_, i) => [rnd(i) * 3600 - 1800, rnd(i + 99) * 2400 - 1200, rnd(i + 7) * TAU, 2 + rnd(i + 3) * 4]);
+function rrect(x, y, w, h, r) { X.beginPath(); X.roundRect(x - w / 2, y - h / 2, w, h, r); }
+function packet(x, y, c, a, s = 1) { if (a <= 0.01) return; X.globalAlpha = a; X.fillStyle = c; rrect(x, y, 24 * s, 24 * s, 6 * s); X.fill(); X.globalAlpha = 1; }
+const edge = u => Math.min(cl(u / 0.06), cl((1 - u) / 0.06));   // 경로 양 끝에서 부드럽게 나타나고 사라진다
+
+function draw(t) {
+  const c = cam(t), dim = 1 - 0.75 * sine(p(t, LE, LE + 1.0));
+  X.setTransform(1, 0, 0, 1, 0, 0);
+  const g = X.createLinearGradient(0, 0, VW, VH); g.addColorStop(0, '#f6f1e8'); g.addColorStop(1, '#ebe2d2');
+  X.fillStyle = g; X.fillRect(0, 0, VW, VH);
+  X.setTransform(c[2], 0, 0, c[2], VW / 2 - c[0] * c[2], VH / 2 - c[1] * c[2]);
+  // 배경 점: 4초 주기로 흔들린다
+  X.fillStyle = 'rgba(150,120,90,.25)';
+  for (const [x, y, ph, r] of DOTS) { X.beginPath(); X.arc(x + 14 * Math.sin(TAU * t / 4 + ph), y + 9 * Math.cos(TAU * t / 4 + ph), r / c[2] * 0.9, 0, TAU); X.fill(); }
+  X.globalAlpha = dim;
+  // 출처와 상자
+  X.lineWidth = 5; X.strokeStyle = '#c9b79b';
+  for (const [x, y] of SRC) { X.beginPath(); X.arc(x, y, 34, 0, TAU); X.fillStyle = '#fffaf2'; X.fill(); X.stroke(); }
+  X.fillStyle = '#fffaf2'; rrect(HUB[0], HUB[1], 190, 190, 34); X.fill(); X.stroke();
+  // 출처 -> 상자 조각(4초 주기, 24개)
+  for (let i = 0; i < 24; i++) {
+    const s = SRC[i % 5], u = frac(t / 4 + i / 24), [x, y] = bez(u, s, [-520, s[1] * 0.35], [HUB[0] - 60, HUB[1]]);
+    packet(x, y, COL[i % 3], edge(u) * dim);
+  }
+  // 선반: 8칸, 채워진 칸은 스프링으로 튀어나온다
+  SHELF.forEach(([sx, sy], k) => {
+    X.globalAlpha = dim; X.fillStyle = '#fffaf2'; X.strokeStyle = '#c9b79b'; rrect(sx, sy, 380, 120, 28); X.fill(); X.stroke();
+    const fill = 8 * p(t, 5.0 + k * 0.3, 9.4 + k * 0.2);
+    for (let j = 0; j < 8; j++) {
+      const x = sx - 140 + j * 40, f = cl(fill - j);
+      X.fillStyle = '#efe6d6'; rrect(x, sy, 28, 28, 7); X.fill();
+      if (f > 0) packet(x, sy, COL[k], dim, spring(f));
+    }
+  });
+  // 상자 -> 선반 조각(4초 주기, 12개). 4.4초부터 나타난다
+  const hs = p(t, 4.4, 5.0);
+  for (let i = 0; i < 12; i++) {
+    const k = i % 3, sh = SHELF[k], u = frac(t / 4 + i / 12), [x, y] = bez(u, [HUB[0] + 95, HUB[1]], [40, sh[1] * 0.5], [sh[0] - 200, sh[1]]);
+    packet(x, y, COL[k], edge(u) * hs * dim);
+  }
+  // 선반 -> 결과물 선(10~11.3초에 그어짐)과 그 위를 도는 빛(2초 주기)
+  const L = eo(p(t, 9.9, 11.3)), glowOn = p(t, 11.2, 11.8);
+  SHELF.forEach(([sx, sy], k) => {
+    const a = [sx + 190, sy], cc = [640, sy * 0.4], b = [OUT[0] - 95, OUT[1]];
+    X.globalAlpha = dim; X.strokeStyle = '#c9b79b'; X.lineWidth = 6; X.beginPath(); X.moveTo(a[0], a[1]);
+    for (let n = 1; n <= 40 * L; n++) { const [x, y] = bez(n / 40, a, cc, b); X.lineTo(x, y); }
+    X.stroke();
+    for (let m = 0; m < 2; m++) {
+      const u = frac(t / 2 + k / 3 + m / 2), [x, y] = bez(u, a, cc, b);
+      X.globalAlpha = glowOn * edge(u) * dim; X.fillStyle = COL[k]; X.beginPath(); X.arc(x, y, 11, 0, TAU); X.fill();
+    }
+  });
+  X.globalAlpha = 1;
+  // 결과물 원: 11초에 튀어나오고, 루프 동안 4초 주기로 숨 쉬고, 엔딩에서 커진다
+  const r = 95 * spring(p(t, 10.9, 11.5)) * (1 + 0.55 * sine(p(t, LE + 0.2, LE + 1.2)));
+  if (r > 0.5) {
+    const pulse = 0.5 + 0.5 * Math.sin(TAU * t / 4), ink = sine(p(t, LE + 0.2, LE + 1.2));
+    X.fillStyle = `rgba(224,83,58,${0.12 + 0.1 * pulse})`; X.beginPath(); X.arc(OUT[0], OUT[1], r * (1.35 + 0.08 * pulse), 0, TAU); X.fill();
+    X.fillStyle = ink > 0.5 ? '#1f1c19' : '#e0533a'; X.beginPath(); X.arc(OUT[0], OUT[1], r, 0, TAU); X.fill();
+    X.globalAlpha = ink; X.fillStyle = '#e0533a'; X.beginPath(); X.arc(OUT[0], OUT[1], r * 0.42, 0, TAU); X.fill(); X.globalAlpha = 1;
+  }
+}
+
+function seek(V) {
+  const v = Math.max(0, Math.min(DV - 1e-6, V)), t = Wv(v);
+  draw(t);
+  words($('h1'), t, 0.5, 3.9);
+  words($('h2'), t, 13.4, 18.4);                  // 루프 가운데에만. 12~13.3, 18.8~20 에는 글자 없음
+  words($('h3'), t, LE + 1.1, null);
+  const wm = $('wm'), wa = p(t, LE + 1.5, LE + 2.0);
+  wm.style.visibility = wa > 0 ? 'visible' : 'hidden'; wm.style.opacity = wa; wm.style.transform = `translateY(${(1 - eo(wa)) * 24}px)`;
+  // 설명
+  const ex = $('ex'), open = eo(p(v, EX.a, EX.a + 0.35)), close = p(v, EX.b, EX.b + EX.out), vis = open > 0 && close < 1;
+  ex.style.visibility = vis ? 'visible' : 'hidden';
+  if (vis) {
+    ex.style.clipPath = `inset(0 0 0 ${(1 - open * (1 - eo(close))) * 100}% round 26px)`;   // 오른쪽 가장자리에서 열고 닫는다
+    [['exn', 0.1], ['ex1', 0.18], ['ex2', 0.26]].forEach(([id, d]) => { $(id).style.opacity = p(v, EX.a + d, EX.a + d + 0.2) * (1 - close); });
+  }
+}
+window.seek = seek;
+
+// ---- 소리. 모든 시작 시각은 샘플 단위로 반올림한다(P58). 사건은 Vt()로 영상 시간에 옮긴다.
+window.buildAudio = async function (ctx) {
+  const sr = ctx.sampleRate, at = t => Math.round(t * sr) / sr;
+  const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3;
+  const out = ctx.createGain(); out.gain.value = 0.6;    // 컴프레서 뒤 여유(1.0을 넘으면 잘린다, P60)
+  comp.connect(out); out.connect(ctx.destination);
+  out.gain.setValueAtTime(0.6, at(DV - 0.8)); out.gain.linearRampToValueAtTime(0, DV);
+  const env = (g, t, a, pk, dec) => { g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(pk, t + a); g.gain.exponentialRampToValueAtTime(1e-4, t + a + dec); };
+  const tone = (f, t, dec, pk, type = 'sine', pan = 0) => {
+    t = at(t); const o = ctx.createOscillator(), g = ctx.createGain(), pn = ctx.createStereoPanner();
+    o.type = type; o.frequency.value = f; pn.pan.value = pan; o.connect(g); g.connect(pn); pn.connect(comp);
+    env(g, t, 0.004, pk, dec); o.start(t); o.stop(t + dec + 0.05);
+  };
+  const nb = ctx.createBuffer(1, sr, sr); { const d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = rnd(i) * 2 - 1; }
+  const noise = (t, dec, pk, type, f, Q = 1, pan = 0) => {
+    t = at(t); const s = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), g = ctx.createGain(), pn = ctx.createStereoPanner();
+    s.buffer = nb; fl.type = type; fl.frequency.value = f; fl.Q.value = Q; pn.pan.value = pan;
+    s.connect(fl); fl.connect(g); g.connect(pn); pn.connect(comp); env(g, t, 0.002, pk, dec); s.start(t); s.stop(t + dec + 0.05);
+  };
+  const whoosh = (t, d, pk, up = true) => {
+    t = at(t); const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+    s.buffer = nb; s.loop = true; f.type = 'bandpass'; f.Q.value = 1;
+    f.frequency.setValueAtTime(up ? 400 : 2800, t); f.frequency.exponentialRampToValueAtTime(up ? 2800 : 380, t + d);
+    s.connect(f); f.connect(g); g.connect(comp); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(pk, t + d * 0.6); g.gain.linearRampToValueAtTime(0, t + d);
+    s.start(t); s.stop(t + d + 0.05);
+  };
+  const mf = m => 440 * 2 ** ((m - 69) / 12);
+  const wood = (t, m, pk, pan = 0) => { tone(mf(m), t, 0.12, pk, 'triangle', pan); noise(t, 0.02, pk * 0.6, 'bandpass', 1800, 2, pan); };
+  const duck = v => 1 - 0.35 * p(v, EX.a - 0.3, EX.a) * (1 - p(v, EX.b, EX.b + 0.5));
+  // 음악: 96 BPM, 화음 넷을 두 마디씩
+  const BEAT = 0.625, CH = [[57, 64, 69, 72], [53, 60, 65, 69], [55, 62, 67, 71], [52, 59, 64, 67]];
+  for (let n = 0; n * BEAT / 2 < DV - 0.6; n++) {
+    const v = n * BEAT / 2, ch = CH[Math.floor(v / (BEAT * 8)) % 4], d = duck(v) * p(v, 0, 1.2);
+    tone(mf(ch[n % 4] + 12), v, 0.25, 0.045 * d, 'triangle', (n % 4 - 1.5) * 0.25);
+    if (n % 4 === 0) tone(mf(ch[0] - 12), v, 0.5, 0.12 * d, 'sine');
+    if (n % 2 === 1) noise(v, 0.03, 0.03 * d, 'highpass', 6500, 1, 0.2);
+  }
+  // 효과음
+  [[0.5, 0], [0.58, 1], [0.66, 2], [0.74, 3]].forEach(([t, i]) => tone(mf(84 + i * 2), Vt(t), 0.1, 0.04, 'sine', -0.3 + 0.2 * i));   // 헤드라인 1
+  whoosh(Vt(4.6), 1.0, 0.1);                                                                                                         // 선반으로
+  for (let k = 0; k < 3; k++) for (let j = 0; j < 8; j++) {                                                                          // 선반 칸이 찰 때마다 나무 톡
+    const a = 5.0 + k * 0.3, b = 9.4 + k * 0.2;
+    wood(Vt(a + (j + 0.5) / 8 * (b - a)), [72, 76, 79][k] + (j % 2 ? 0 : 12), 0.035, -0.4 + 0.4 * k);
+  }
+  wood(EX.a, 64, 0.1, 0.4); tone(mf(76), EX.a + 0.05, 0.6, 0.05, 'sine', 0.4);                                                      // 설명: 선반 이름표가 걸리는 소리
+  wood(EX.b, 69, 0.05, 0.4);
+  whoosh(Vt(10.0), 1.3, 0.11, false);                                                                                                // 넓은 샷으로
+  { const t = at(Vt(9.9)), o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.setValueAtTime(330, t); o.frequency.exponentialRampToValueAtTime(880, t + 1.3);
+    o.connect(g); g.connect(comp); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.03, t + 0.7); g.gain.linearRampToValueAtTime(0, t + 1.35); o.start(t); o.stop(t + 1.4); }   // 선이 그어짐
+  [69, 73, 76, 81].forEach((m, i) => tone(mf(m), Vt(10.95) + i * 0.03, 0.8, 0.06, 'sine', -0.2 + 0.13 * i));                        // 결과물 원
+  [0, 0.07, 0.14].forEach((d, i) => tone(mf(88 + i * 2), Vt(13.4) + d, 0.12, 0.035, 'sine', -0.2 + 0.2 * i));                       // 헤드라인 2
+  whoosh(Vt(LE), 1.4, 0.1);                                                                                                          // 엔딩으로
+  [57, 64, 69, 73, 76].forEach((m, i) => tone(mf(m), Vt(LE + 1.1) + i * 0.035, 1.8, 0.07, 'sine', -0.3 + 0.15 * i)); tone(mf(33), Vt(LE + 1.1), 2.2, 0.14, 'sine');
+};
+
+seek(q.has('t') ? +q.get('t') : 0);
+if (!q.has('render') && !q.has('t')) { const t0 = performance.now(); const loop = () => { seek(((performance.now() - t0) / 1000) % DV); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
+</script>
+</body></html>
