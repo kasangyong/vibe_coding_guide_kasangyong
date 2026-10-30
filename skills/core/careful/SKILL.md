@@ -1,5 +1,6 @@
 ---
 name: careful
+description: "Safety Guardrail. 삭제·마이그레이션·권한 변경·외부 API 호출·배포 직전에 영향 범위 요약, dry-run, 승인을 거칠 때 사용."
 role: Safety Guardrail
 triggers:
   - "삭제"
@@ -8,7 +9,6 @@ triggers:
   - "외부 API"
   - "결제"
   - "배포"
-  - "/careful"
 guardrails:
   - "사용자 명시 승인 없이 실행하지 않는다."
   - "dry-run 가능하면 반드시 먼저 실행."

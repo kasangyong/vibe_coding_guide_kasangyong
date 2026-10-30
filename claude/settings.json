@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(sudo *)",
+      "Read(./.env*)",
+      "Write(./.env*)",
+      "Edit(./.env*)",
+      "Read(./**/*.pem)",
+      "Read(./**/id_rsa*)",
+      "Read(./**/*.key)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "__PYTHON__ \"__HOME__/.claude/hooks/block-dangerous-bash.py\""
+          }
+        ]
+      }
+    ]
+  },
+  "effortLevel": "high"
+}

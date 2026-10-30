@@ -3,9 +3,14 @@
 > 모든 프로젝트 루트의 CLAUDE.md보다 먼저 합쳐진다. 보편 룰만 담는다.
 > 프로젝트 루트에 CLAUDE.md가 있으면 그게 우선. 충돌 시 그 프로젝트 룰을 따른다.
 
+## 단계별 진행 원칙
+- 진행하는 것은 단계별로 나누고 한 단계씩 진행한다.
+- 단계가 끝나면 평가 에이전트가 냉정하게 평가를 진행한다.
+- 평가는 **위험 / 보통 / 통과** 로 진행하고, **통과**일 때만 다음 단계로 넘어간다.
+
 ## Workflow defaults
-- 작업 시작 시: `pwd` → `claude-progress.txt`나 `feature_list.json`이 있으면 먼저 읽는다 (long-running 신호).
-- 작업 종료 시: 변경 요약 한 단락을 `claude-progress.txt`에 append (있을 때만).
+- 작업 시작 시: `pwd` → `progress.txt`나 `feature_list.json`이 있으면 먼저 읽는다 (long-running 신호).
+- 작업 종료 시: 변경 요약 한 단락을 `progress.txt`에 append (있을 때만).
 - 코드 변경 후 항상 형식/타입 검사 1회 (`pnpm lint && pnpm typecheck`, `ruff check`, `cargo check` 등 스택 맞춰).
 - 보고 전 한 번 더 자가 검증 — 테스트 / E2E 스모크 / 결과 미리보기.
 
@@ -15,7 +20,7 @@
 - 응답을 산문 보고서로 만들지 마라. 결정 근거를 짧은 불릿/표로.
 
 ## Hard rules
-- `rm -rf`, `sudo rm`, `chmod 777 /` 류 위험 명령은 PreToolUse 훅(`hooks/block-dangerous-bash.sh`)이 차단. 우회하지 마라.
+- `rm -rf`, `sudo rm`, `chmod 777 /` 류 위험 명령은 PreToolUse 훅(`~/.claude/hooks/block-dangerous-bash.py`)이 차단. 우회하지 마라.
 - `.env*`, `*.pem`, `id_rsa*`, `*.key` 파일은 settings.json의 deny에 걸림. 진짜 필요하면 사용자에게 묻는다.
 - `git push --force`는 ask. 평소엔 `--force-with-lease` 사용.
 - TypeScript에서 `any` 금지. 불가피하면 `// TODO: type` 주석 + 이유.
