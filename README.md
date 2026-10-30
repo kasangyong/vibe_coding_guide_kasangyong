@@ -59,6 +59,21 @@ bash scripts/doctor.sh                             # 빠진 것과 설치 방법
 
 글꼴은 `~/.cache/video-skill/fonts`(또는 `VIDEO_FONTS`)에 받아 다시 설치해도 남는다. `install.sh`를 다시 돌리면 스킬 폴더가 백업으로 옮겨지므로 `npm ci`는 다시 한다. 두 팩에 같은 이름의 스킬이 있으면 `install.sh`는 아무것도 바꾸지 않고 멈춘다.
 
+### Windows에서 Codex로 쓸 때
+
+Codex의 기본 샌드박스(`workspace-write`)는 Windows에서 Git Bash 실행 자체를 막는다(`CreateFileMapping ... Win32 error 5`). 네트워크만 여는 설정으로는 풀리지 않는다. 영상 작업에서만 샌드박스를 끄는 프로필 파일 `~/.codex/video.config.toml`을 만든다. `-p video`를 주면 기본 설정 위에 이 파일을 덮어쓴다(codex-cli 0.164 기준).
+
+```bash
+printf 'sandbox_mode = "danger-full-access"\n' > ~/.codex/video.config.toml
+```
+
+```bash
+codex -p video                       # 영상 작업 세션
+codex exec -p video "..."            # 비대화 실행
+```
+
+샌드박스를 끄면 Codex가 PC 전체에 쓰고 명령을 실행할 수 있다. 전역 기본값으로 두지 않고 프로필로만 켠다. 대화 중에는 `/permissions`(버전에 따라 `/approvals`)에서 Full Access로 바꿔도 된다. Linux, macOS는 기본 샌드박스로 돈다(실행은 확인하지 않음).
+
 ## MCP 직접 등록
 
 ```bash

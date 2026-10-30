@@ -30,6 +30,7 @@ guardrails:
   ```bash
   codex exec --ephemeral -C "<작업 폴더>" -s workspace-write --skip-git-repo-check -o "<작업 폴더>/work/review.md" '$video-review .'
   ```
+  Windows에서는 `-s workspace-write` 대신 `-p video`를 쓴다(그 샌드박스에서는 Git Bash가 돌지 않는다. 하네스 README "Windows에서 Codex로 쓸 때").
   `codex`가 없거나 실행이 실패하면 만든 쪽은 멈추고 사용자에게 새 세션을 요청한다. 만든 쪽의 자기 평가로 대신하지 않는다.
 
 ## 먼저 읽을 것

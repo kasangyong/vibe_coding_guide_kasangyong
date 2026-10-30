@@ -9,6 +9,7 @@
 ```bash
 bash "$V/scripts/doctor.sh"          # 빠진 것과 설치 방법을 알려 준다
 ```
+- Windows의 Codex는 기본 샌드박스에서 Git Bash를 띄우지 못한다(`CreateFileMapping ... Win32 error 5`). 이 오류가 나면 멈추고 사용자에게 `codex -p video`로 다시 실행해 달라고 요청한다(하네스 README "Windows에서 Codex로 쓸 때").
 - 처음 한 번
   - `cd "$V" && npm ci && npx playwright install chromium` (Linux는 `npx playwright install --with-deps chromium`. node 20 이상)
   - `python3 -m pip install fonttools brotli`. Linux, macOS는 가상환경을 권한다: `python3 -m venv ~/.venvs/video && . ~/.venvs/video/bin/activate`
@@ -139,6 +140,7 @@ check.sh가 재는 것: 해상도, fps, 코덱, 분당 용량, faststart, 샘플
   codex exec --ephemeral -C "<작업 폴더>" -s workspace-write --skip-git-repo-check -o "<작업 폴더>/work/review.md" '$video-review .'
   ```
   - Codex 세션 안에서 띄우면 샌드박스(네트워크 꺼짐, `~/.codex` 쓰기 제한) 때문에 실패할 수 있다. 이 명령은 샌드박스 밖 실행 승인을 요청해(escalation) 돌린다.
+  - Windows에서는 `-s workspace-write` 대신 `-p video`를 쓴다. 그 샌드박스에서는 Git Bash가 돌지 않아 check.sh가 실패한다.
   - `--ephemeral`은 평가 세션 기록을 디스크에 남기지 않는다. `-s workspace-write`는 check.sh가 `check/` 이미지를 쓰기 때문이다. `'$video-review .'`는 작은따옴표로 감싸 셸이 `$`를 풀지 않게 한다.
   - 끝나면 `work/review.md` 첫 줄의 판정을 읽는다.
   - `codex`가 없거나 실행이 실패하면 멈추고, 사용자에게 새 세션에서 `$video-review <작업 폴더>`를 실행해 달라고 요청한다. 자기 평가로 대신하지 않는다.

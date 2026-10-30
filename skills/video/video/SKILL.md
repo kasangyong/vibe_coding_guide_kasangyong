@@ -57,6 +57,8 @@ guardrails:
 
 평가가 "위험"이나 "보통"이면 지적을 고치고 그 단계부터 다시 검사한다.
 
+0단계에서 bash가 `CreateFileMapping ... Win32 error 5`로 죽으면 Windows Codex 샌드박스 때문이다. 우회하지 말고 멈춘 뒤, 사용자에게 `codex -p video`(README "Windows에서 Codex로 쓸 때")로 다시 실행해 달라고 요청한다.
+
 ## 멈추는 곳
 - 기획서: 기본은 기획서를 사용자에게 보여 주고(경로와 요약) 질문 없이 계속 진행한다. 사용자가 "기획서 보고 정하자"처럼 확인을 요청했을 때만 승인을 기다린다.
 - 평가: 반드시 다른 세션이 한다. 자기 평가로 대신하지 않는다.
@@ -65,6 +67,7 @@ guardrails:
     ```bash
     codex exec --ephemeral -C "<작업 폴더>" -s workspace-write --skip-git-repo-check -o "<작업 폴더>/work/review.md" '$video-review .'
     ```
+    Windows에서는 `-s workspace-write` 대신 `-p video`를 쓴다(그 샌드박스에서는 check.sh가 돌지 않는다).
     `review.md` 첫 줄의 판정을 읽는다. `codex`가 없거나 실행이 실패하면 멈추고, 사용자에게 새 세션에서 `$video-review <작업 폴더>`를 실행해 달라고 요청한다. 자기 평가로 대신하지 않는다.
 
 ## 사양 기본값
