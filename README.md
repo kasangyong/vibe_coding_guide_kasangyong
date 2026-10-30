@@ -1,6 +1,6 @@
 # vibe_coding_guide
 
-Claude Code / Codex 공용 로컬 하네스. 전역 규칙, 기본 스킬 4개, 위험 명령 차단 훅, MCP 등록 스크립트를 담는다.
+Claude Code / Codex 공용 로컬 하네스. 전역 규칙, 기본 스킬 4개, 영상 제작 스킬 팩, 위험 명령 차단 훅, MCP 등록 스크립트를 담는다.
 
 ## 구조
 
